@@ -9,12 +9,12 @@ class Trainer():
     def __init__(self, dataset, network, video_network=None, audio_network=None, output_prefix=""):
         self.network = network
         self.dataset = dataset
-        self.output_prefix = output_prefix + self.dataset.featureVideoName + "_" + ("PCA_" if self.dataset.PCA else "") +  "_" + self.dataset.featureAudioName + "_" + self.network.network_type + str(self.network.VLAD_k) + "_" +str(date.today().isoformat() + time.strftime('_%H-%M-%S'))
+        self.output_prefix = output_prefix + "_" +str(date.today().isoformat() + time.strftime('_%H-%M-%S'))
 
     def train(self, epochs=1, learning_rate=0.001, tflog="logs"):
         self.tflog = tflog
-        best_output_prefix = self.output_prefix
         config = tf.ConfigProto(allow_soft_placement=True)
+
         with tf.Session(config=config) as sess:
             # Initializing the variables
             sess.run(tf.global_variables_initializer())
@@ -32,9 +32,9 @@ class Trainer():
 
             for epoch in range(epochs):
                 start_time_epoch = time.time()
+
                 print("\n\n\n")
-                print("Epoch {:>2}, Football: ".format(epoch + 1))
-                print("weights: ", self.dataset.weights)
+                print("Epoch {:>2}: ".format(epoch + 1))
 
                 self.dataset.prepareNewEpoch()
 
@@ -57,22 +57,20 @@ class Trainer():
                         self.network.weights: self.dataset.weights
                     }
 
-                    for sub_epoch in range(self.dataset.nb_epoch_per_batch):
-                        if(self.dataset.nb_epoch_per_batch > 1): print("  -- sub_epoch:", sub_epoch)
-                        sess.run(self.network.optimizer, feed_dict=feed_dict) # optimize
-                        sess.run(self.network.update_metrics_op, feed_dict=feed_dict) # update metrics
-                        vals_train = sess.run(self.network.metrics_op, feed_dict=feed_dict) # return metrics
-                        total_num_batches += 1
+                    sess.run(self.network.optimizer, feed_dict=feed_dict) # optimize
+                    sess.run(self.network.update_metrics_op, feed_dict=feed_dict) # update metrics
+                    vals_train = sess.run(self.network.metrics_op, feed_dict=feed_dict) # return metrics
+                    total_num_batches += 1
 
-                        good_sample = np.sum(np.multiply(vals_train['confusion_matrix'], np.identity(4)), axis=0)
-                        bad_sample = np.sum(vals_train['confusion_matrix'] - np.multiply(vals_train['confusion_matrix'], np.identity(4)), axis=0)
-                        vals_train['accuracies'] = good_sample / (bad_sample + good_sample)
-                        vals_train['accuracy'] = np.mean(vals_train['accuracies'])
-                        vals_train['mAP'] = np.mean([vals_train['auc_PR_1'], vals_train['auc_PR_2'], vals_train['auc_PR_3']])
+                    good_sample = np.sum(np.multiply(vals_train['confusion_matrix'], np.identity(4)), axis=0)
+                    bad_sample = np.sum(vals_train['confusion_matrix'] - np.multiply(vals_train['confusion_matrix'], np.identity(4)), axis=0)
+                    vals_train['accuracies'] = good_sample / (bad_sample + good_sample)
+                    vals_train['accuracy'] = np.mean(vals_train['accuracies'])
+                    vals_train['mAP'] = np.mean([vals_train['auc_PR_1'], vals_train['auc_PR_2'], vals_train['auc_PR_3']])
 
-                        print(("Batch number: %.3f Loss: %.3f Accuracy: %.3f mAP: %.3f") % (total_num_batches, vals_train['loss'], vals_train['accuracy'], vals_train['mAP']))
-                        print(("auc: %.3f   (auc_PR_0: %.3f auc_PR_1: %.3f auc_PR_2: %.3f auc_PR_3: %.3f)") %
-                        (vals_train['auc_PR'], vals_train['auc_PR_0'], vals_train['auc_PR_1'], vals_train['auc_PR_2'], vals_train['auc_PR_3']))
+                    print(("Batch number: %.3f Loss: %.3f Accuracy: %.3f mAP: %.3f") % (total_num_batches, vals_train['loss'], vals_train['accuracy'], vals_train['mAP']))
+                    print(("auc: %.3f   (auc_PR_0: %.3f auc_PR_1: %.3f auc_PR_2: %.3f auc_PR_3: %.3f)") %
+                    (vals_train['auc_PR'], vals_train['auc_PR_0'], vals_train['auc_PR_1'], vals_train['auc_PR_2'], vals_train['auc_PR_3']))
 
                 print(vals_train['confusion_matrix'])
 
@@ -96,11 +94,10 @@ class Trainer():
                 self.train_writer.add_summary(tf.Summary(value=summaries), epoch)
 
                 # Run Multiple Validation to check the metrics are constant
-                for i_val in range(2):
-                    print("\n")
-                    print("Validation", i_val)
+                print("\n")
+                print("Validation")
 
-                    vals_valid = self.validate(sess)
+                vals_valid = self.validate(sess)
 
                 summaries = [
                     tf.Summary.Value(tag="learning_rate",       simple_value=learning_rate),

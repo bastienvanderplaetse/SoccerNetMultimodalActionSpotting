@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+Windows_size_60_sec/*
+Windows_size_20_sec/*
+Model/*
