@@ -3,7 +3,7 @@ import logging
 import time
 
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
-from dataset import Dataset
+from ftpdataset import Dataset
 from networks import AudioNetwork, VideoNetwork
 from trainer import Trainer
 
